@@ -3,17 +3,16 @@ using Minio.Exceptions;
 using NexTube.Application.Common.Interfaces;
 using NexTube.Application.Common.Models;
 using NexTube.Persistence.Settings.Configurations;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
+using SixLabors.ImageSharp.Processing;
 
-namespace NexTube.Persistence.Services
-{
-    public class PhotoService : IPhotoService
-    {
+namespace NexTube.Persistence.Services {
+    public class PhotoService : IPhotoService {
         private readonly IFileService _fileService;
         private readonly PhotoSettings _options;
 
-        public PhotoService(IFileService fileService, IOptions<PhotoSettings> options)
-        {
+        public PhotoService(IFileService fileService, IOptions<PhotoSettings> options) {
             _fileService = fileService;
             _options = options.Value;
         }
@@ -21,8 +20,7 @@ namespace NexTube.Persistence.Services
             return $"{photoId}_{photoSize}";
         }
 
-        public async Task<(Result Result, string Url)> GetPhotoUrl(string photoId)
-        {
+        public async Task<(Result Result, string Url)> GetPhotoUrl(string photoId) {
             var getPhotoUrl = await _fileService.GetFileUrlAsync("photos", photoId, "image/webp");
             return getPhotoUrl;
         }
@@ -32,8 +30,7 @@ namespace NexTube.Persistence.Services
             return photoUrl;
         }
 
-        public async Task<(Result Result, string? PhotoId)> UploadPhoto(Stream source)
-        {
+        public async Task<(Result Result, string? PhotoId)> UploadPhoto(Stream source) {
             using var image = await Image.LoadAsync(source);
             var encoder = new WebpEncoder { Quality = _options.PhotoQuallity };
             var imageName = Guid.NewGuid().ToString();
@@ -51,7 +48,7 @@ namespace NexTube.Persistence.Services
                 // save image to storage using file service
                 var uploadPhoto = await _fileService.UploadFileAsync("photos", ms, filename);
             }
-            
+
             return (Result.Success(), imageName);
         }
 
@@ -72,12 +69,9 @@ namespace NexTube.Persistence.Services
             }
         }
 
-        public async Task DeletePhotoAsync(string photoId)
-        {
-            foreach (var size in _options.ChannelPhotoWidths)   
-            {
-                try
-                {
+        public async Task DeletePhotoAsync(string photoId) {
+            foreach (var size in _options.ChannelPhotoWidths) {
+                try {
                     await _fileService.DeleteFileAsync("photos", $"{photoId}_{size}");
                 }
                 catch (InvalidObjectNameException) { }

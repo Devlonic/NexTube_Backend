@@ -3,13 +3,16 @@ using NexTube.Application.Common.Models;
 using Minio;
 using Minio.DataModel.Args;
 using Minio.Exceptions;
+using Microsoft.Extensions.Configuration;
 
 namespace NexTube.Persistence.Services {
     public class MinioFileService : IFileService {
         private readonly IMinioClient minioClient;
+        private readonly bool isSslUsed;
 
-        public MinioFileService(IMinioClient minioClient) {
+        public MinioFileService(IMinioClient minioClient, IConfiguration configuration) {
             this.minioClient = minioClient;
+            this.isSslUsed = configuration.GetValue<bool>("MinIO:SSL");
         }
 
         public async Task<(Result Result, string Url)> GetFileUrlAsync(string bucket, string fileId, string contentType) {
@@ -21,6 +24,11 @@ namespace NexTube.Persistence.Services {
                 })
                 .WithExpiry(7 * 24 * 3600);
             var url = await minioClient.PresignedGetObjectAsync(argsGetUrl);
+
+            // replace https scheme to http in case of using unsecure Minio server
+            if (isSslUsed == false)
+                url = url.Replace("https", "http");
+
             return (Result.Success(), url);
         }
 

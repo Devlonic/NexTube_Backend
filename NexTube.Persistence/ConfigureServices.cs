@@ -45,20 +45,22 @@ public static class ConfigureServices {
         var minioHost = configuration.GetValue<string>("MinIO:Host");
         var minioAccessKey = configuration.GetValue<string>("MinIO:AccessKey");
         var minioSecretKey = configuration.GetValue<string>("MinIO:SecretKey");
+        var minioSsl = configuration.GetValue<bool?>("MinIO:SSL");
 
         Guard.Against.Null(minioHost, message: "minioHost not found.");
         Guard.Against.Null(minioAccessKey, message: "minioAccessKey not found.");
         Guard.Against.Null(minioSecretKey, message: "minioAccessKey not found.");
+        Guard.Against.Null(minioSsl, message: "minioSsl not found.");
 
         services.AddMinio(c => {
             c
             .WithEndpoint(minioHost)
             .WithCredentials(minioAccessKey, minioSecretKey)
-            .WithSSL(true)
+            .WithSSL(minioSsl!.Value)
             .WithHttpClient(new HttpClient(new HttpClientHandler() {
                 ServerCertificateCustomValidationCallback = (sender, certificate, chain, sslPolicyErrors) => {
                     // disable certificate verification (ONLY FOR DEV PURPOSE)
-                    return true;
+                    return minioSsl!.Value;
                 }
             }))
             .Build();
