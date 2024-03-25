@@ -22,8 +22,7 @@ public static class ConfigureServices {
         // add options
         services.AddOptions<PhotoSettings>()
             .Bind(configuration.GetSection(nameof(PhotoSettings)))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .ValidateDataAnnotations();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
