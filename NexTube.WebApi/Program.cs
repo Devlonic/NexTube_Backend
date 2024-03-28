@@ -22,30 +22,25 @@ builder.Services.AddInfrastructureServices(configuration);
 
 
 //Configure limits
-builder.Services.Configure<FormOptions>(options =>
-{
+builder.Services.Configure<FormOptions>(options => {
     options.BufferBodyLengthLimit = int.MaxValue;
     options.MultipartBodyLengthLimit = int.MaxValue;
 });
-builder.Services.Configure<KestrelServerOptions>(options =>
-{
+builder.Services.Configure<KestrelServerOptions>(options => {
     options.Limits.MaxRequestBodySize = int.MaxValue;
     options.Limits.MaxRequestBufferSize = int.MaxValue;
 });
 
-builder.Services.AddAutoMapper(config =>
-{
+builder.Services.AddAutoMapper(config => {
     config.AddProfile(new AssemblyMappingProfile(Assembly.GetExecutingAssembly()));
     config.AddProfile(new AssemblyMappingProfile(typeof(ApplicationDbContext).Assembly));
 });
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(o =>
-{
+builder.Services.AddSwaggerGen(o => {
     o.AddSecurityDefinition("Bearer",
-        new OpenApiSecurityScheme
-        {
+        new OpenApiSecurityScheme {
             In = ParameterLocation.Header,
             Description = @"Bearer (paste here your token (remove all brackets) )",
             Name = "Authorization",
@@ -55,18 +50,15 @@ builder.Services.AddSwaggerGen(o =>
 
     o.OperationFilter<AuthorizeCheckOperationFilter>();
 
-    o.SwaggerDoc("v1", new OpenApiInfo()
-    {
+    o.SwaggerDoc("v1", new OpenApiInfo() {
         Title = "NexTube API - v1",
         Version = "v1"
     });
 });
 
 // enable CORS to all sources
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
-    {
+builder.Services.AddCors(options => {
+    options.AddPolicy("AllowAll", policy => {
         policy.AllowAnyHeader();
         policy.AllowAnyMethod();
         policy.AllowAnyOrigin();
@@ -75,8 +67,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
+app.UseSwaggerUI(c => {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "NexTube API - v1");
 
     // setup Google OAuth2
@@ -104,6 +95,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<NotificationsHub>("/signalr/notifications");
+app.MapHub<ProgressReportHub>("/signalr/progress");
 
 app.SeedData();
 

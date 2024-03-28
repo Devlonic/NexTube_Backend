@@ -14,6 +14,8 @@ using IHttpClientFactory = NexTube.Application.Common.Interfaces.IHttpClientFact
 using NexTube.Persistence.Services.EventPublishers;
 using Microsoft.AspNetCore.SignalR;
 using NexTube.Persistence.Data.Providers;
+using NexTube.Application.Models.Lookups;
+using NexTube.Application.Models;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -22,8 +24,7 @@ public static class ConfigureServices {
         // add options
         services.AddOptions<PhotoSettings>()
             .Bind(configuration.GetSection(nameof(PhotoSettings)))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+            .ValidateDataAnnotations();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
@@ -45,20 +46,22 @@ public static class ConfigureServices {
         var minioHost = configuration.GetValue<string>("MinIO:Host");
         var minioAccessKey = configuration.GetValue<string>("MinIO:AccessKey");
         var minioSecretKey = configuration.GetValue<string>("MinIO:SecretKey");
+        var minioSsl = configuration.GetValue<bool?>("MinIO:SSL");
 
         Guard.Against.Null(minioHost, message: "minioHost not found.");
         Guard.Against.Null(minioAccessKey, message: "minioAccessKey not found.");
         Guard.Against.Null(minioSecretKey, message: "minioAccessKey not found.");
+        Guard.Against.Null(minioSsl, message: "minioSsl not found.");
 
         services.AddMinio(c => {
             c
             .WithEndpoint(minioHost)
             .WithCredentials(minioAccessKey, minioSecretKey)
-            .WithSSL(true)
+            .WithSSL(minioSsl!.Value)
             .WithHttpClient(new HttpClient(new HttpClientHandler() {
                 ServerCertificateCustomValidationCallback = (sender, certificate, chain, sslPolicyErrors) => {
                     // disable certificate verification (ONLY FOR DEV PURPOSE)
-                    return true;
+                    return minioSsl!.Value;
                 }
             }))
             .Build();
@@ -71,7 +74,9 @@ public static class ConfigureServices {
         services.TryAddScoped<IHttpClientFactory, HttpClientFactory>();
         services.TryAddScoped<IAdminService, AdminService>();
         services.TryAddScoped<IVideoAccessModificatorService, VideoAccessModificatorService>();
-        services.TryAddScoped<IEventPublisher, NotificationEventPublisher>();
+
+        services.TryAddScoped<IEventPublisher<NotificationLookup>, NotificationEventPublisher>();
+        services.TryAddScoped<IEventPublisher<VideoUploadProgress>, ProgressReportEventPublisher>();
 
         services.TryAddSingleton<IUserIdProvider, ApplicationUserIdProvider>();
 

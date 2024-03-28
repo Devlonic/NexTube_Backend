@@ -6,10 +6,10 @@ using NexTube.Domain.Entities;
 
 namespace NexTube.Application.CQRS.Videos.Notifications.VideoCreated {
     public class VideoCreatedRealTimeNotificationHandler : INotificationHandler<VideoCreatedNotification> {
-        private readonly IEventPublisher _eventPublisher;
+        private readonly IEventPublisher<NotificationLookup> _eventPublisher;
         private readonly IDateTimeService _dateTimeService;
 
-        public VideoCreatedRealTimeNotificationHandler(IEventPublisher eventPublisher, IDateTimeService dateTimeService) {
+        public VideoCreatedRealTimeNotificationHandler(IEventPublisher<NotificationLookup> eventPublisher, IDateTimeService dateTimeService) {
             _eventPublisher = eventPublisher;
             _dateTimeService = dateTimeService;
         }

@@ -3,13 +3,19 @@ using NexTube.Application.Common.Models;
 using Minio;
 using Minio.DataModel.Args;
 using Minio.Exceptions;
+using Microsoft.Extensions.Configuration;
+using NexTube.Application.Models;
+using Microsoft.AspNetCore.Components.Web;
+using Minio.DataModel;
 
 namespace NexTube.Persistence.Services {
     public class MinioFileService : IFileService {
         private readonly IMinioClient minioClient;
+        private readonly bool isSslUsed;
 
-        public MinioFileService(IMinioClient minioClient) {
+        public MinioFileService(IMinioClient minioClient, IConfiguration configuration) {
             this.minioClient = minioClient;
+            this.isSslUsed = configuration.GetValue<bool>("MinIO:SSL");
         }
 
         public async Task<(Result Result, string Url)> GetFileUrlAsync(string bucket, string fileId, string contentType) {
@@ -21,6 +27,11 @@ namespace NexTube.Persistence.Services {
                 })
                 .WithExpiry(7 * 24 * 3600);
             var url = await minioClient.PresignedGetObjectAsync(argsGetUrl);
+
+            // replace https scheme to http in case of using unsecure Minio server
+            if (isSslUsed == false)
+                url = url.Replace("https", "http");
+
             return (Result.Success(), url);
         }
 
@@ -39,7 +50,23 @@ namespace NexTube.Persistence.Services {
 
             return (Result.Success(), obj.ObjectName);
         }
+        public async Task<(Result Result, string? FileId)> UploadFileAsync(string bucket, Stream source, IProgress<FileUploadProgress> progress) {
+            var putObjArgs = new PutObjectArgs()
+                .WithBucket(bucket)
+                .WithObject(Guid.NewGuid().ToString())
+                .WithObjectSize(source.Length)
+                .WithProgress(new Progress<ProgressReport>((report) => {
+                    progress.Report(new FileUploadProgress() {
+                        Percentage = report.Percentage,
+                        TotalBytesTransferred = report.TotalBytesTransferred,
+                    });
+                }))
+                .WithStreamData(source);
 
+            var obj = await minioClient.PutObjectAsync(putObjArgs);
+
+            return (Result.Success(), obj.ObjectName);
+        }
 
         public async Task DeleteFileAsync(string bucket, string filename) {
             var removeObjArgs = new RemoveObjectArgs()
