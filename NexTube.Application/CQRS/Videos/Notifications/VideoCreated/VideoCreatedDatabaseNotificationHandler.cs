@@ -15,17 +15,6 @@ namespace NexTube.Application.CQRS.Videos.Notifications.VideoCreated {
         }
 
         public async Task Handle(VideoCreatedNotification notification, CancellationToken cancellationToken) {
-            var videoLookup = new VideoLookup() {
-                Id = notification.Video.Id,
-                Name = notification.Video.Name,
-                PreviewPhotoFile = notification.Video.PreviewPhotoFileId,
-                Creator = new UserLookup() {
-                    FirstName = notification.Video.Creator!.FirstName,
-                    LastName = notification.Video.Creator!.LastName,
-                    ChannelPhoto = notification.Video.Creator!.ChannelPhotoFileId!.ToString(),
-                }
-            };
-
             var notificationEntity = new NotificationEntity() {
                 DateCreated = _dateTimeService.Now,
                 NotificationIssuer = notification.Video.Creator,
