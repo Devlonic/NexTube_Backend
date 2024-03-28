@@ -1,11 +1,15 @@
 ﻿using Ardalis.GuardClauses;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using NexTube.Application.Common.DbContexts;
 using NexTube.Application.Common.Interfaces;
 using NexTube.Application.CQRS.Videos.Notifications.VideoCreated;
+using NexTube.Application.CQRS.Videos.Notifications.VideoUploading;
+using NexTube.Application.Models;
 using NexTube.Application.Models.Lookups;
 using NexTube.Domain.Entities;
+using System.Threading.Channels;
 
 namespace NexTube.Application.CQRS.Videos.Commands.UploadVideo {
     public class UploadVideoCommandHandler : IRequestHandler<UploadVideoCommand, VideoLookup> {
@@ -24,40 +28,22 @@ namespace NexTube.Application.CQRS.Videos.Commands.UploadVideo {
         }
 
         public async Task<VideoLookup> Handle(UploadVideoCommand request, CancellationToken cancellationToken) {
-            var videoUploadResult = await _videoService.UploadVideoAsync(request.Source);
-            var photoUploadResult = await _photoService.UploadPhoto(request.PreviewPhotoSource);
-            var accessModificator = await _dbContext.VideoAccessModificators.Where(v => v.Modificator == request.AccessModificator).FirstOrDefaultAsync();
-
-            if (accessModificator == null) {
-                throw new NotFoundException(request.AccessModificator, nameof(VideoAccessModificatorEntity));
-            }
-
             var video = new VideoEntity() {
                 Name = request.Name,
                 Description = request.Description,
-                VideoFileId = Guid.Parse(videoUploadResult.VideoFileId),
-                PreviewPhotoFileId = Guid.Parse(photoUploadResult.PhotoId),
+                VideoFileId = null,
+                PreviewPhotoFileId = null,
                 Creator = request.Creator,
-                AccessModificator = accessModificator,
+                AccessModificator = null,
                 DateCreated = _dateTimeService.Now,
             };
-
             _dbContext.Videos.Add(video);
             await _dbContext.SaveChangesAsync(cancellationToken);
-
-            if (video.AccessModificator.Modificator.ToLower() != "private") {
-                await _mediator.Publish(new VideoCreatedNotification() {
-                    Video = video,
-                });
-            }
 
             var videoLookup = new VideoLookup() {
                 Id = video.Id,
                 Name = video.Name,
                 Description = video.Description,
-                VideoFile = video.VideoFileId,
-                AccessModificator = video.AccessModificator.Modificator,
-                PreviewPhotoFile = video.PreviewPhotoFileId,
                 DateCreated = video.DateCreated,
                 DateModified = video.DateModified,
                 Views = video.Views,
@@ -68,6 +54,44 @@ namespace NexTube.Application.CQRS.Videos.Commands.UploadVideo {
                     ChannelPhoto = video.Creator.ChannelPhotoFileId.ToString(),
                 }
             };
+
+            var progressTracker = new Progress<FileUploadProgress>(async (report) => {
+                var videoUploadProgress = new VideoUploadProgress() {
+                    Percentage = report.Percentage,
+                    TotalBytesTransferred = report.TotalBytesTransferred,
+                    Video = videoLookup
+                };
+
+                await _mediator.Publish(new VideoUploadingNotification() {
+                    Progress = videoUploadProgress
+                });
+            });
+
+            var videoUploadResult = await _videoService.UploadVideoAsync(request.Source, progressTracker);
+            video.VideoFileId = Guid.Parse(videoUploadResult.VideoFileId);
+
+            var photoUploadResult = await _photoService.UploadPhoto(request.PreviewPhotoSource);
+            video.PreviewPhotoFileId = Guid.Parse(photoUploadResult.PhotoId);
+
+            var accessModificator = await _dbContext.VideoAccessModificators.Where(v => v.Modificator == request.AccessModificator).FirstOrDefaultAsync();
+            video.AccessModificator = accessModificator;
+
+            if (accessModificator == null) {
+                throw new NotFoundException(request.AccessModificator, nameof(VideoAccessModificatorEntity));
+            }
+
+            videoLookup.AccessModificator = video.AccessModificator.Modificator;
+            videoLookup.PreviewPhotoFile = video.PreviewPhotoFileId;
+            videoLookup.VideoFile = video.VideoFileId;
+
+            _dbContext.Videos.Update(video);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            if (video.AccessModificator.Modificator.ToLower() != "private") {
+                await _mediator.Publish(new VideoCreatedNotification() {
+                    Video = video,
+                });
+            }
 
             return videoLookup;
         }

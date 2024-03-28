@@ -15,6 +15,7 @@ using NexTube.Persistence.Services.EventPublishers;
 using Microsoft.AspNetCore.SignalR;
 using NexTube.Persistence.Data.Providers;
 using NexTube.Application.Models.Lookups;
+using NexTube.Application.Models;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -75,6 +76,7 @@ public static class ConfigureServices {
         services.TryAddScoped<IVideoAccessModificatorService, VideoAccessModificatorService>();
 
         services.TryAddScoped<IEventPublisher<NotificationLookup>, NotificationEventPublisher>();
+        services.TryAddScoped<IEventPublisher<VideoUploadProgress>, ProgressReportEventPublisher>();
 
         services.TryAddSingleton<IUserIdProvider, ApplicationUserIdProvider>();
 
