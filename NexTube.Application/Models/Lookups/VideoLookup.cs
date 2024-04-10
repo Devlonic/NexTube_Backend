@@ -11,5 +11,6 @@
         public DateTime? DateModified { get; set; } = null;
         public int? Views { get; set; } = null;
         public int? CommentsCount { get; set; } = null;
+        public bool? IsApproved { get; set; }
     }
 }
