@@ -10,34 +10,31 @@ using NexTube.Domain.Entities;
 using System.Linq;
 using WebShop.Application.Common.Exceptions;
 
-namespace NexTube.Application.CQRS.Videos.Queries.GetRandomVideo
-{
+namespace NexTube.Application.CQRS.Videos.Queries.GetRandomVideo {
     public class GetRandomVideoQueryHandler : IRequestHandler<GetRandomVideoQuery, GetRandomVideoQueryResult> {
         private readonly IApplicationDbContext _dbContext;
         private readonly IDateTimeService _dateTimeService;
 
-        public GetRandomVideoQueryHandler(IApplicationDbContext dbContext, IDateTimeService dateTimeService)
-        {
+        public GetRandomVideoQueryHandler(IApplicationDbContext dbContext, IDateTimeService dateTimeService) {
             _dbContext = dbContext;
             _dateTimeService = dateTimeService;
         }
 
         public async Task<GetRandomVideoQueryResult> Handle(GetRandomVideoQuery request, CancellationToken cancellationToken) {
-            var randomSelection = await (from video in _dbContext.Videos
-                                         join access in _dbContext.VideoAccessModificators on video.AccessModificator.Modificator equals access.Modificator
-                                         where access.Modificator == VideoAccessModificators.Public
-                                         select video).ToListAsync();
+            var randomSelection = await ( from video in _dbContext.Videos
+                                          where video.IsApproved == true
+                                          join access in _dbContext.VideoAccessModificators on video.AccessModificator.Modificator equals access.Modificator
+                                          where access.Modificator == VideoAccessModificators.Public
+                                          select video ).ToListAsync();
 
 
-            if (randomSelection.Count == 0)
-                return new GetRandomVideoQueryResult()
-                {
-                    Video = new VideoLookup()
-                    {
+            if ( randomSelection.Count == 0 )
+                return new GetRandomVideoQueryResult() {
+                    Video = new VideoLookup() {
                         Id = -1
                     }
                 };
-        
+
 
             var randomVideoId = randomSelection.ElementAt(new Random().Next(randomSelection.Count)).Id;
 
@@ -62,7 +59,7 @@ namespace NexTube.Application.CQRS.Videos.Queries.GetRandomVideo
                     },
                 }).FirstOrDefaultAsync();
 
-            if (videoLookup == null) {
+            if ( videoLookup == null ) {
                 throw new NotFoundException(randomVideoId.ToString(), nameof(VideoEntity));
             }
 
