@@ -45,5 +45,9 @@ namespace NexTube.Persistence.Data.Contexts {
             // default behaviour
             return await base.SaveChangesAsync(cancellationToken);
         }
+
+        public IQueryable<VideoEntity> FromSqlVideos(FormattableString formattableString) {
+            return Videos.FromSql(formattableString);
+        }
     }
 }

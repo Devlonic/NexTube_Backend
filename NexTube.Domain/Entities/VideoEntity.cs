@@ -8,6 +8,7 @@ namespace NexTube.Domain.Entities {
         public Guid? VideoFileId { get; set; } = null!;
         public Guid? PreviewPhotoFileId { get; set; } = null!;
         public int Views { get; set; } = 0;
+        public bool IsApproved { get; set; }
 
         public VideoAccessModificatorEntity? AccessModificator { get; set; } = null!;
 
