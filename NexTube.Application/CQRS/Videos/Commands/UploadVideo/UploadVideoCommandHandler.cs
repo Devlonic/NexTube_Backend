@@ -9,6 +9,7 @@ using NexTube.Application.CQRS.Videos.Notifications.VideoUploading;
 using NexTube.Application.Models;
 using NexTube.Application.Models.Lookups;
 using NexTube.Domain.Entities;
+using System.Text.RegularExpressions;
 using System.Threading.Channels;
 
 namespace NexTube.Application.CQRS.Videos.Commands.UploadVideo {
@@ -28,6 +29,9 @@ namespace NexTube.Application.CQRS.Videos.Commands.UploadVideo {
         }
 
         public async Task<VideoLookup> Handle(UploadVideoCommand request, CancellationToken cancellationToken) {
+            request.Description = Regex.Replace(request.Description, @"<", "&lt;");
+            request.Description = Regex.Replace(request.Description, @">", "&gt;");
+
             var video = new VideoEntity() {
                 Name = request.Name,
                 Description = request.Description,
@@ -76,7 +80,7 @@ namespace NexTube.Application.CQRS.Videos.Commands.UploadVideo {
             var accessModificator = await _dbContext.VideoAccessModificators.Where(v => v.Modificator == request.AccessModificator).FirstOrDefaultAsync();
             video.AccessModificator = accessModificator;
 
-            if (accessModificator == null) {
+            if ( accessModificator == null ) {
                 throw new NotFoundException(request.AccessModificator, nameof(VideoAccessModificatorEntity));
             }
 
@@ -87,7 +91,7 @@ namespace NexTube.Application.CQRS.Videos.Commands.UploadVideo {
             _dbContext.Videos.Update(video);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            if (video.AccessModificator.Modificator.ToLower() != "private") {
+            if ( video.AccessModificator.Modificator.ToLower() != "private" ) {
                 await _mediator.Publish(new VideoCreatedNotification() {
                     Video = video,
                 });
