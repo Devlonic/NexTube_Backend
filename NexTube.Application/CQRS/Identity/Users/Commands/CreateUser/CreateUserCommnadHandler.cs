@@ -26,7 +26,7 @@ namespace NexTube.Application.CQRS.Identity.Users.Commands.CreateUser
             var result = await _identityService.CreateUserAsync(
                  request.Password, request.Email, request.FirstName, request.LastName, Guid.Parse(photo));
 
-            var secretPhrase = _mailService.GeneratePassword(16);
+            var secretPhrase = _mailService.GeneratePassword(64);
             await _mailService.SendMailAsync("Verify your registration: " + secretPhrase, request.Email);
           
 
