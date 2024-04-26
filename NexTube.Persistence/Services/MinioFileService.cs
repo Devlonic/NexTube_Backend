@@ -25,11 +25,11 @@ namespace NexTube.Persistence.Services {
                 .WithHeaders(new Dictionary<string, string> {
                     { "response-content-type", contentType },
                 })
-                .WithExpiry(7 * 24 * 3600);
+                .WithExpiry(150 * 24 * 3600);
             var url = await minioClient.PresignedGetObjectAsync(argsGetUrl);
 
             // replace https scheme to http in case of using unsecure Minio server
-            if (isSslUsed == false)
+            if ( isSslUsed == false )
                 url = url.Replace("https", "http");
 
             return (Result.Success(), url);
@@ -84,7 +84,7 @@ namespace NexTube.Persistence.Services {
 
                 await minioClient.StatObjectAsync(statObjArgs);
             }
-            catch (ObjectNotFoundException) {
+            catch ( ObjectNotFoundException ) {
                 return false;
             }
 
