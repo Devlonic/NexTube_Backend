@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.SignalR;
 using NexTube.Persistence.Data.Providers;
 using NexTube.Application.Models.Lookups;
 using NexTube.Application.Models;
+using Newtonsoft.Json;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -24,6 +25,10 @@ public static class ConfigureServices {
         // add options
         services.AddOptions<PhotoSettings>()
             .Bind(configuration.GetSection(nameof(PhotoSettings)))
+            .ValidateDataAnnotations();
+
+        services.AddOptions<ReCaptchaSettings>()
+            .Bind(configuration.GetSection(nameof(ReCaptchaSettings)))
             .ValidateDataAnnotations();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
@@ -79,6 +84,10 @@ public static class ConfigureServices {
         services.TryAddScoped<IEventPublisher<VideoUploadProgress>, ProgressReportEventPublisher>();
 
         services.TryAddSingleton<IUserIdProvider, ApplicationUserIdProvider>();
+
+        services.TryAddSingleton((provider) => JsonSerializer.CreateDefault());
+
+        services.AddScoped<ICaptchaValidatorService, ReCaptchaValidatorService>();
 
         // setup SignalR
         services.AddSignalR();

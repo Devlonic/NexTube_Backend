@@ -2,8 +2,7 @@
 using NexTube.Application.Common.Mappings;
 using NexTube.Application.CQRS.Identity.Users.Commands.CreateUser;
 
-namespace NexTube.WebApi.DTO.Auth.User
-{
+namespace NexTube.WebApi.DTO.Auth.User {
     public class SignUpDto : IMapWith<CreateUserCommand> {
         public string Password { get; set; } = null!;
         public string? PasswordConfirm { get; set; } = null!;
@@ -11,6 +10,7 @@ namespace NexTube.WebApi.DTO.Auth.User
         public string FirstName { get; set; } = null!;
         public string LastName { get; set; } = null!;
         public IFormFile ChannelPhoto { get; set; } = null!;
+        public string? CaptchaToken { get; set; }
 
         public void Mapping(Profile profile) {
             profile.CreateMap<SignUpDto, CreateUserCommand>()
